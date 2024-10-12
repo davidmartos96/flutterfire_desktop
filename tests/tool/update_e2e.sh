@@ -24,6 +24,8 @@ tool/clone_base_impl.sh $FIREBASE_PACKAGE_NAME
 cp -r "$FLUTTERFIRE_REPO_PATH"/tests/integration_test/"$FIREBASE_PACKAGE_NAME" "$DART_REPO_E2E_PATH"
 
 pushd "$DART_REPO_E2E_PATH"
-# Apply patch ignoring first level from the diff (flutterfire and dart subfolders)
-patch -p1 --merge  < "$ROOT_DIR"/patches/e2e-$FIREBASE_PACKAGE_NAME.patch
+# Apply patch ignoring first level (p1) from the diff (electric and dart subfolders)
+# --merge is used so that it creates a "git compatible" merge conflict
+# --no-backup-if-mismatch is used so that it doesn't create .orig files
+patch -p1 --merge --no-backup-if-mismatch < "$ROOT_DIR"/patches/e2e-$FIREBASE_PACKAGE_NAME.patch
 popd
