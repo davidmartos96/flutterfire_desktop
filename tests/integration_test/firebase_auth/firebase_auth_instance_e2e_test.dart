@@ -541,9 +541,7 @@ void main() {
               isNotNull,
             ); // default to the device language or the Firebase projects default language
           },
-          skip: kIsWeb ||
-              defaultTargetPlatform == TargetPlatform.macOS ||
-              defaultTargetPlatform == TargetPlatform.linux,
+          skip: kIsWeb || defaultTargetPlatform == TargetPlatform.macOS,
         );
 
         test(
@@ -770,7 +768,7 @@ void main() {
             expect(idTokenResult.claims!['roles'][0]['role'], 'member');
           });
         },
-        skip: !kIsWeb && Platform.isWindows,
+        skip: !kIsWeb && (Platform.isWindows || Platform.isMacOS),
       );
 
       group('signInWithEmailAndPassword()', () {

@@ -135,7 +135,7 @@ class FirebaseAuth {
   /// operations provided the specified providers support localization with the
   /// language code specified.
   void setLanguageCode(String? languageCode) {
-    return _api.setLanguageCode(languageCode);
+    return _api.setLanguageCode(languageCode ?? Platform.localeName);
   }
 
   /// Attempts to sign in a user with the given email address and password.

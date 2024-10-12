@@ -41,8 +41,6 @@ void main() {
             expect(token?.length, greaterThan(24));
           });
 
-          // TODO add custom claims and tenant id tests for id token result
-
           test('should return a token using `getIdToken()` after sign in',
               () async {
             // Demonstrate fix for this issue works: https://github.com/firebase/flutterfire/issues/11297

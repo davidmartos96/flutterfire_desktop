@@ -43,6 +43,24 @@ diff -x flutterfire_repo -ur flutterfire/firebase_auth_instance_e2e_test.dart da
              );
  
              Stream<User?> stream =
+@@ -255,7 +254,7 @@
+             }
+           });
+         },
+-        skip: !kIsWeb && Platform.isWindows,
++        skip: !kIsWeb && isFlutterFirePlatform,
+       );
+ 
+       group(
+@@ -272,7 +271,7 @@
+             }
+           });
+         },
+-        skip: !kIsWeb && Platform.isWindows,
++        skip: !kIsWeb && isFlutterFirePlatform,
+       );
+ 
+       group(
 @@ -440,7 +439,8 @@
              equals(true),
            );
@@ -53,15 +71,15 @@ diff -x flutterfire_repo -ur flutterfire/firebase_auth_instance_e2e_test.dart da
  
        group(
          'sendPasswordResetEmail()',
-@@ -768,7 +768,7 @@
-             expect(idTokenResult.claims!['roles'][0]['role'], 'member');
+@@ -521,7 +521,7 @@
+             );
            });
          },
 -        skip: !kIsWeb && (Platform.isWindows || Platform.isMacOS),
-+        skip: !kIsWeb && Platform.isWindows,
++        skip: !kIsWeb && (isFlutterFirePlatform || Platform.isMacOS),
        );
  
-       group('signInWithEmailAndPassword()', () {
+       group('languageCode', () {
 @@ -960,7 +960,7 @@
            );
          },
@@ -84,15 +102,25 @@ diff -x flutterfire_repo -ur flutterfire/firebase_auth_user_e2e_test.dart dart/f
  
  import 'dart:async';
  
-@@ -41,6 +41,8 @@
-             expect(token?.length, greaterThan(24));
-           });
+@@ -251,7 +251,7 @@
+             },
+             skip: kIsWeb ||
+                 defaultTargetPlatform == TargetPlatform.macOS ||
+-                defaultTargetPlatform == TargetPlatform.windows,
++                isFlutterFirePlatform,
+           ); // verifyPhoneNumber not supported on web.
  
-+           // TODO add custom claims and tenant id tests for id token result
-+
-           test('should return a token using `getIdToken()` after sign in',
-               () async {
-             // Demonstrate fix for this issue works: https://github.com/firebase/flutterfire/issues/11297
+           test(
+@@ -720,7 +720,8 @@
+               // Assertions
+               expect(
+                 FirebaseAuth.instance.currentUser!.refreshToken,
+-                isNull,
++                // With flutterfire_desktop we return refreshTokens
++                isNotNull,
+               );
+             },
+             // macOS skipped because it needs keychain sharing entitlement. See: https://github.com/firebase/flutterfire/issues/9538
 diff -x flutterfire_repo -ur flutterfire/test_utils.dart dart/test_utils.dart
 --- flutterfire/test_utils.dart	2024-01-01 00:00:00.000000000 +0100
 +++ dart/test_utils.dart	2024-01-01 00:00:00.000000000 +0100
@@ -109,28 +137,16 @@ diff -x flutterfire_repo -ur flutterfire/test_utils.dart dart/test_utils.dart
  import 'dart:math';
  
  import 'package:collection/collection.dart' show IterableExtension;
-@@ -14,17 +15,10 @@
+@@ -14,7 +15,7 @@
  const String testEmail = 'test@example.com';
  const String testPassword = 'testpassword';
  const String testPhoneNumber = '+447111555666';
 -const String _testFirebaseProjectId = 'flutterfire-e2e-tests';
++const String _testFirebaseProjectId = 'react-native-firebase-testing';
  
--// TODO can this be moved to be shared for all plugins that use emulators?
--String get testEmulatorHost {
--  if (defaultTargetPlatform == TargetPlatform.android && !kIsWeb) {
--    return '10.0.2.2';
--  }
--  return 'localhost';
--}
--
--const int testEmulatorPort = 9099;
-+const _testFirebaseProjectId = 'react-native-firebase-testing';
-+const testEmulatorHost = 'localhost';
-+const testEmulatorPort = 9099;
- 
- class EmulatorOobCode {
-   @protected
-@@ -251,3 +245,6 @@
+ // TODO can this be moved to be shared for all plugins that use emulators?
+ String get testEmulatorHost {
+@@ -251,3 +252,6 @@
  
    return base64Url.encode(values).toLowerCase();
  }
