@@ -55,6 +55,7 @@ enum ServerError {
   MISSING_REQ_TYPE,
   MISSING_PHONE_NUMBER,
   MISSING_SESSION_INFO,
+  NOT_IMPLEMENTED,
   OPERATION_NOT_ALLOWED,
   PASSWORD_LOGIN_DISABLED,
   QUOTA_EXCEEDED,
@@ -104,6 +105,7 @@ enum AuthErrorCode {
   INVALID_CODE,
   INVALID_CONTINUE_URI,
   INVALID_CORDOVA_CONFIGURATION,
+  INVALID_CREDENTIAL,
   INVALID_CUSTOM_TOKEN,
   INVALID_DYNAMIC_LINK_DOMAIN,
   INVALID_EMAIL,
@@ -137,6 +139,7 @@ enum AuthErrorCode {
   NEED_CONFIRMATION,
   NETWORK_REQUEST_FAILED,
   NULL_USER,
+  NOT_IMPLEMENTED,
   NO_AUTH_EVENT,
   NO_CURRENT_USER,
   NO_SUCH_PROVIDER,
@@ -196,6 +199,8 @@ extension MapFromServerToAuthCode on ServerError {
         return AuthErrorCode.EMAIL_ALREADY_IN_USE;
 
       // Verify assertion for sign in with credential errors.
+      case ServerError.INVALID_IDP_RESPONSE:
+        return AuthErrorCode.INVALID_CREDENTIAL;
       case ServerError.INVALID_PENDING_TOKEN:
         return AuthErrorCode.INVALID_IDP_RESPONSE;
       case ServerError.FEDERATED_USER_ID_ALREADY_LINKED:
@@ -311,6 +316,8 @@ Map<AuthErrorCode, String> verbose = {
           'cordova-plugin-buildinfo, cordova-universal-links-plugin, '
           'cordova-plugin-browsertab, cordova-plugin-inappbrowser and '
           'cordova-plugin-customurlscheme.',
+  AuthErrorCode.INVALID_CREDENTIAL:
+      'The supplied auth credential is malformed, has expired or is not currently supported.',
   AuthErrorCode.INVALID_CUSTOM_TOKEN:
       'The custom token format is incorrect. Please check the documentation.',
   AuthErrorCode.INVALID_DYNAMIC_LINK_DOMAIN:

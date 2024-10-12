@@ -180,6 +180,7 @@ class User {
     if (forceRefresh || !_decodedIdToken.isValidTimestamp) {
       _setIdToken(await _auth._api.idToken.refreshIdToken(refreshToken));
       _auth._updateCurrentUserAndEvents(this);
+      await null;
     }
   }
 
@@ -362,6 +363,7 @@ class User {
 
     _user.addAll(user);
     _auth._updateCurrentUserAndEvents(this);
+    await null;
   }
 
   /// Updates the user's email address.

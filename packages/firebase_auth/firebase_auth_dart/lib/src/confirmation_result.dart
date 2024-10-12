@@ -40,6 +40,7 @@ class ConfirmationResult {
       final user = User(userData..addAll(response.toJson()), _auth);
 
       _auth._updateCurrentUserAndEvents(user, true);
+      await null;
 
       final credential = PhoneAuthProvider.credential(
         verificationId: verificationId,

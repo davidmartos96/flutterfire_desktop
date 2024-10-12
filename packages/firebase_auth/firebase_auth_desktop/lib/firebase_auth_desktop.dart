@@ -28,11 +28,11 @@ class FirebaseAuthDesktop extends FirebaseAuthPlatform {
         super(appInstance: app) {
     // Create a app instance broadcast stream for both delegate listener events
     _userChangesListeners[app.name] =
-        StreamController<UserPlatform?>.broadcast();
+        StreamController<UserPlatform?>.broadcast(sync: true);
     _authStateChangesListeners[app.name] =
-        StreamController<UserPlatform?>.broadcast();
+        StreamController<UserPlatform?>.broadcast(sync: true);
     _idTokenChangesListeners[app.name] =
-        StreamController<UserPlatform?>.broadcast();
+        StreamController<UserPlatform?>.broadcast(sync: true);
 
     _delegate!.authStateChanges().map((auth_dart.User? dartUser) {
       if (dartUser == null) {

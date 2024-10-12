@@ -254,7 +254,7 @@ void main() {
             }
           });
         },
-        skip: !kIsWeb && Platform.isWindows,
+        skip: !kIsWeb && isFlutterFirePlatform,
       );
 
       group(
@@ -271,7 +271,7 @@ void main() {
             }
           });
         },
-        skip: !kIsWeb && Platform.isWindows,
+        skip: !kIsWeb && isFlutterFirePlatform,
       );
 
       group(
@@ -521,7 +521,7 @@ void main() {
             );
           });
         },
-        skip: !kIsWeb && (Platform.isWindows || Platform.isMacOS),
+        skip: !kIsWeb && (isFlutterFirePlatform || Platform.isMacOS),
       );
 
       group('languageCode', () {
@@ -541,7 +541,9 @@ void main() {
               isNotNull,
             ); // default to the device language or the Firebase projects default language
           },
-          skip: kIsWeb || defaultTargetPlatform == TargetPlatform.macOS,
+          skip: kIsWeb ||
+              defaultTargetPlatform == TargetPlatform.macOS ||
+              defaultTargetPlatform == TargetPlatform.linux,
         );
 
         test(

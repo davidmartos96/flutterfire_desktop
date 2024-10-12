@@ -167,6 +167,7 @@ class FirebaseAuth {
       final user = User(userData..addAll(response.toJson()), this);
 
       _updateCurrentUserAndEvents(user, true);
+      await null;
 
       // Make a credential object based on the current sign-in method.
       return UserCredential._(
@@ -212,6 +213,7 @@ class FirebaseAuth {
       final user = User(userData..addAll(response.toJson()), this);
 
       _updateCurrentUserAndEvents(user, true);
+      await null;
 
       return UserCredential._(
         auth: this,
@@ -362,6 +364,7 @@ class FirebaseAuth {
       final user = User(userData..addAll(response.toJson()), this);
 
       _updateCurrentUserAndEvents(user, true);
+      await null;
 
       return UserCredential._(
           auth: this,
@@ -502,6 +505,7 @@ class FirebaseAuth {
       final user = User(response, this);
 
       _updateCurrentUserAndEvents(user, true);
+      await null;
 
       return UserCredential._(
         auth: this,
@@ -546,6 +550,7 @@ class FirebaseAuth {
     final user = await _getUserFromIdToken(response.idToken, response);
 
     _updateCurrentUserAndEvents(user, true);
+    await null;
 
     return UserCredential._(
       auth: this,

@@ -41,7 +41,7 @@ void main() {
             expect(token?.length, greaterThan(24));
           });
 
-           // TODO add custom claims and tenant id tests for id token result
+          // TODO add custom claims and tenant id tests for id token result
 
           test('should return a token using `getIdToken()` after sign in',
               () async {
@@ -253,7 +253,7 @@ void main() {
             },
             skip: kIsWeb ||
                 defaultTargetPlatform == TargetPlatform.macOS ||
-                defaultTargetPlatform == TargetPlatform.windows,
+                isFlutterFirePlatform,
           ); // verifyPhoneNumber not supported on web.
 
           test(
@@ -722,7 +722,8 @@ void main() {
               // Assertions
               expect(
                 FirebaseAuth.instance.currentUser!.refreshToken,
-                isNull,
+                // With flutterfire_desktop we return refreshTokens
+                isNotNull,
               );
             },
             // macOS skipped because it needs keychain sharing entitlement. See: https://github.com/firebase/flutterfire/issues/9538

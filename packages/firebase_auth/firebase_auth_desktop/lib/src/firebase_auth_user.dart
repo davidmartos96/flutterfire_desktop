@@ -256,34 +256,24 @@ PigeonUserInfo _dartUserToPigeonUserInfo(auth_dart.User user) {
     tenantId: user.tenantId,
     refreshToken: user.refreshToken,
     creationTimestamp: metadata?.creationTime?.millisecondsSinceEpoch,
+    lastSignInTimestamp: metadata?.lastSignInTime?.millisecondsSinceEpoch,
   );
 }
 
 UserInfo dartUserInfoToUserInfo(
     auth_dart.User user, auth_dart.UserInfo userInfo) {
   final info = _dartUserToPigeonUserInfo(user);
+  info.providerId = userInfo.providerId;
   info.email = userInfo.email;
   info.displayName = userInfo.displayName;
   info.photoUrl = userInfo.photoURL;
   info.phoneNumber = userInfo.phoneNumber;
+  info.uid = userInfo.uid!;
   
-  print(userInfo.toMap());
+  // print(userInfo.toMap());
   //info.isEmailVerified = userInfo.;
 
   return UserInfo.fromPigeon(info);
-  /*  uid: data['uid'] as String,
-          email: data['email'] as String?,
-          displayName: data['displayName'] as String?,
-          photoUrl: data['photoUrl'] as String?,
-          phoneNumber: data['phoneNumber'] as String?,
-          isAnonymous: data['isAnonymous'] as bool,
-          isEmailVerified: data['isEmailVerified'] as bool,
-          providerId: data['providerId'] as String?,
-          tenantId: data['tenantId'] as String?,
-          refreshToken: data['refreshToken'] as String?,
-          creationTimestamp: data['creationTimestamp'] as int?,
-          lastSignInTimestamp: data['lastSignInTimestamp'] as int?,
-  ); */
 }
 
 PigeonIdTokenResult dartIdTokenResultToPigeon(
