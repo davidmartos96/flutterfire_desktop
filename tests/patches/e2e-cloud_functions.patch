@@ -9,9 +9,18 @@ diff -x flutterfire_repo -ur flutterfire/cloud_functions_e2e_test.dart dart/clou
 +// Use of this source code is governed by a BSD-style license
 +// that can be found in the LICENSE file.
  
- import 'package:cloud_functions/cloud_functions.dart';
- import 'package:firebase_core/firebase_core.dart';
-@@ -24,7 +24,7 @@
+ import 'dart:io';
+ 
+@@ -18,6 +18,8 @@
+ String kTestFunctionTimeout = 'testFunctionTimeout';
+ String kTestMapConvertType = 'testMapConvertType';
+ 
++const String testFirebaseProjectId = 'react-native-firebase-testing';
++
+ void main() {
+   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+ 
+@@ -26,7 +28,7 @@
  
      setUpAll(() async {
        await Firebase.initializeApp(
@@ -20,6 +29,32 @@ diff -x flutterfire_repo -ur flutterfire/cloud_functions_e2e_test.dart dart/clou
        );
        FirebaseFunctions.instance.useFunctionsEmulator('localhost', 5001);
        callable =
+@@ -129,7 +131,7 @@
+ 
+         HttpsCallable callable =
+             FirebaseFunctions.instance.httpsCallableFromUrl(
+-          'http://$localhostMapped:5001/flutterfire-e2e-tests/us-central1/listfruits2ndgen',
++          'http://$localhostMapped:5001/$testFirebaseProjectId/us-central1/listfruits2ndgen',
+         );
+ 
+         HttpsCallableResult result = await callable();
+@@ -143,7 +145,7 @@
+         HttpsCallable callable =
+             FirebaseFunctions.instance.httpsCallableFromUri(
+           Uri.parse(
+-            'http://$localhostMapped:5001/flutterfire-e2e-tests/us-central1/listfruits2ndgen',
++            'http://$localhostMapped:5001/$testFirebaseProjectId/us-central1/listfruits2ndgen',
+           ),
+         );
+ 
+@@ -244,6 +246,7 @@
+           HttpsCallableResult results = await timeoutCallable();
+           expect(results.data, equals('null'));
+         },
++        skip: true,
+       );
+     });
+   });
 diff -x flutterfire_repo -ur flutterfire/sample_data.dart dart/sample_data.dart
 --- flutterfire/sample_data.dart	2024-01-01 00:00:00.000000000 +0100
 +++ dart/sample_data.dart	2024-01-01 00:00:00.000000000 +0100

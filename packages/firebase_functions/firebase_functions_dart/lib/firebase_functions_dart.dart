@@ -62,7 +62,7 @@ class FirebaseFunctions {
   /// Creates an [HttpsCallable] instance to access a particular cloud function
   HttpsCallable httpsCallable(
     String name, {
-    HttpsCallableOptions options = HttpsCallableOptions.defaultOptions,
+    HttpsCallableOptions options = const HttpsCallableOptions(),
   }) {
     assert(name.isNotEmpty, 'HttpsCallable name must not be an empty string');
     return HttpsCallable(
@@ -70,6 +70,23 @@ class FirebaseFunctions {
       app: app,
       region: region,
       name: name,
+      uri: null,
+      options: options,
+      client: _client,
+    );
+  }
+
+  /// Creates a [HttpsCallable] instance from a [Uri]
+  HttpsCallable httpsCallableWithUri(
+    Uri uri, {
+    HttpsCallableOptions options = const HttpsCallableOptions(),
+  }) {
+    return HttpsCallable(
+      origin: _origin,
+      app: app,
+      region: region,
+      name: null,
+      uri: uri,
       options: options,
       client: _client,
     );
@@ -98,11 +115,15 @@ class HttpsCallable {
     required this.origin,
     required this.options,
     required this.name,
+    required this.uri,
     required http.Client client,
   }) : _client = client;
 
   /// The name of the function to call
-  final String name;
+  final String? name;
+
+  /// The uri of the function to call
+  final Uri? uri;
 
   /// The [FirebaseApp] this function belongs to
   final FirebaseApp app;
@@ -120,11 +141,13 @@ class HttpsCallable {
   /// The Http Client used for making requests
   final http.Client _client;
 
-  Uri get _url => Uri.parse(
-        origin != null
-            ? '$origin/${app.options.projectId}/$region/$name'
-            : 'https://$region-${app.options.projectId}.cloudfunctions.net/$name',
-      );
+  Uri get _url => uri != null
+      ? uri!
+      : Uri.parse(
+          origin != null
+              ? '$origin/${app.options.projectId}/$region/$name'
+              : 'https://$region-${app.options.projectId}.cloudfunctions.net/$name',
+        );
 
   /// Calls the function with the given data.
   Future<HttpsCallableResult<T>> call<T>([dynamic data]) async {
@@ -226,14 +249,16 @@ class HttpsCallableResult<T> {
 /// Options for configuring the behavior of a firebase cloud function
 class HttpsCallableOptions {
   /// Options for configuring the behavior of a firebase cloud function
-  const HttpsCallableOptions({this.timeout = const Duration(seconds: 30)});
-
-  /// The default options for creating a [HttpsCallable]
-  static const defaultOptions =
-      HttpsCallableOptions(timeout: Duration(seconds: 70));
+  const HttpsCallableOptions({
+    this.timeout = const Duration(seconds: 60),
+    // this.limitedUseAppCheckToken = false,
+  });
 
   /// The timeout for the function call
   final Duration timeout;
+
+  /// Sets whether or not to use limited-use App Check tokens when invoking the associated function.
+  // final bool limitedUseAppCheckToken;
 }
 
 /// Whether a given call parameter is a valid type.

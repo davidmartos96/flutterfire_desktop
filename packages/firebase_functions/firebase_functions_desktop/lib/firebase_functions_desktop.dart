@@ -89,27 +89,39 @@ class HttpsCallableDesktop extends HttpsCallablePlatform {
   @override
   Future<dynamic> call([dynamic parameters]) async {
     if (origin != null) {
-      _delegate.useFunctionsEmulator(
-        origin!.substring(
-          origin!.indexOf('://') + 3,
-          origin!.lastIndexOf(':'),
-        ),
-        int.parse(
-          origin!.substring(origin!.lastIndexOf(':') + 1),
-        ),
+      final uri = Uri.parse(origin!);
+      _delegate.useFunctionsEmulator(uri.host, uri.port);
+    }
+
+    if (options.limitedUseAppCheckToken) {
+      // TODO: Implement limitedUseAppCheckToken
+      throw UnimplementedError();
+    }
+
+    final callableOptions = functions_dart.HttpsCallableOptions(
+      timeout: options.timeout,
+      // limitedUseAppCheckToken: options.limitedUseAppCheckToken,
+    );
+
+    final functions_dart.HttpsCallable callable;
+    if (name != null) {
+      callable = _delegate.httpsCallable(
+        name!,
+        options: callableOptions,
       );
+    } else if (uri != null) {
+      callable = _delegate.httpsCallableWithUri(
+        uri!,
+        options: callableOptions,
+      );
+    } else {
+      throw ArgumentError('Either name or uri must be provided');
     }
 
     functions_dart.HttpsCallableResult response;
 
     try {
-      response = await _delegate
-          .httpsCallable(
-            name!, // TODO: remove non-null assertion
-            options:
-                functions_dart.HttpsCallableOptions(timeout: options.timeout),
-          )
-          .call(parameters);
+      response = await callable.call(parameters);
     } on functions_dart.FirebaseFunctionsException catch (e, s) {
       throw desktop_utils.convertFirebaseFunctionsException(e, s);
     }

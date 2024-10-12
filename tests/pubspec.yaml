@@ -46,8 +46,6 @@ dependencies:
     sdk: flutter
 
 dependency_overrides:
-  firebase_core: ^3.6.0
-  firebase_core_platform_interface: ^5.3.0
   storagebox:
     path: /home/david/data_ssd/Dev/Flutter/dart-cli-utilities/packages/storagebox
 
