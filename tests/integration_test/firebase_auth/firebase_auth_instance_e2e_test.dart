@@ -696,6 +696,42 @@ void main() {
             fail(e.toString());
           }
         });
+
+        test(
+            'throw Exception when using incorrect auth details with GoogleAuthProvider',
+            () async {
+          final credential = GoogleAuthProvider.credential(
+            idToken: 'incorrect idToken',
+          );
+
+          await expectLater(
+            FirebaseAuth.instance.signInWithCredential(credential),
+            throwsA(
+              isA<FirebaseAuthException>().having(
+                (e) => e.code,
+                'code',
+                contains('invalid-credential'),
+              ),
+            ),
+          );
+
+          final credential2 = GoogleAuthProvider.credential(
+            accessToken: 'incorrect accessToken',
+          );
+
+          await expectLater(
+            FirebaseAuth.instance.signInWithCredential(credential2),
+            throwsA(
+              isA<FirebaseAuthException>(),
+              // Live project has this error code, emulator throws "internal-error"
+              // .having(
+              //   (e) => e.code,
+              //   'code',
+              //   contains('invalid-credential'),
+              // ),
+            ),
+          );
+        });
       });
 
       group(
