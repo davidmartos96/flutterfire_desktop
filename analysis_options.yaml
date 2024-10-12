@@ -1,10 +1,51 @@
+# Copyright 2021 The Chromium Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# in the LICENSE file.
+
 include: all_lint_rules.yaml
 analyzer:
-  exclude: [packages/**/**/test/**.mocks.dart]
+  # TODO(rrousselGit): disable implicit-cast/implicit-dynamic
   errors:
+    # Otherwise cause the import of all_lint_rules to warn because of some rules conflicts.
+    # We explicitly enabled even conflicting rules and are fixing the conflict
+    # in this file
     included_file_warning: ignore
+  exclude:
+    - packages/**/example/lib/generated_plugin_registrant.dart
+
 linter:
   rules:
+    ## currently enabled only for firebase_core
+    avoid_dynamic_calls: false
+
+    ## Disabled rules because the repository doesn't respect them (yet)
+    use_build_context_synchronously: false
+    directives_ordering: false
+    prefer_final_fields: false
+    comment_references: false
+    sort_constructors_first: false
+    sort_unnamed_constructors_first: false
+    always_put_control_body_on_new_line: false
+    omit_local_variable_types: false
+    prefer_constructors_over_static_methods: false
+    prefer_final_locals: false
+    only_throw_errors: false
+    prefer_relative_imports: false
+    non_constant_identifier_names: false
+    avoid_returning_this: false
+    avoid_catching_errors: false
+    constant_identifier_names: false
+    prefer_function_declarations_over_variables: false
+    avoid_classes_with_only_static_members: false
+    avoid_function_literals_in_foreach_calls: false
+    use_key_in_widget_constructors: false
+    prefer_mixin: false
+    public_member_api_docs: false
+
+    invalid_runtime_check_with_js_interop_types: true
+
+    #############
+
     # Far too verbose, and not that big of a deal when using parameter_assignments
     prefer_final_parameters: false
 
@@ -33,10 +74,6 @@ linter:
     # Conflicts with the convention used by flutter, which puts `Key key`
     # and `@required Widget child` last.
     always_put_required_named_parameters_first: false
-
-    # `as` is not that bad (especially with the upcoming non-nullable types).
-    # Explicit exceptions is better than implicit exceptions.
-    avoid_as: false
 
     # This project doesn't use Flutter-style todos
     flutter_style_todos: false
