@@ -1,14 +1,18 @@
-# melos_managed_dependency_overrides: firebase_auth_dart,firebase_auth_desktop,firebase_core_dart,firebase_core_desktop,firebase_functions_dart,firebase_functions_desktop
+# melos_managed_dependency_overrides: firebase_auth_dart,firebase_auth_desktop,firebase_core_dart,firebase_core_desktop,firebase_functions_dart,firebase_functions_desktop,storagebox,firebase_core,firebase_core_platform_interface
 dependency_overrides:
   firebase_auth_dart:
     path: ../packages/firebase_auth/firebase_auth_dart
   firebase_auth_desktop:
     path: ../packages/firebase_auth/firebase_auth_desktop
+  firebase_core: ^3.6.0
   firebase_core_dart:
     path: ../packages/firebase_core/firebase_core_dart
   firebase_core_desktop:
     path: ../packages/firebase_core/firebase_core_desktop
+  firebase_core_platform_interface: ^5.3.0
   firebase_functions_dart:
     path: ../packages/firebase_functions/firebase_functions_dart
   firebase_functions_desktop:
     path: ../packages/firebase_functions/firebase_functions_desktop
+  storagebox:
+    path: /home/david/data_ssd/Dev/Flutter/dart-cli-utilities/packages/storagebox

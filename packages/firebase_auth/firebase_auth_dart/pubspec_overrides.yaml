@@ -1,4 +1,6 @@
-# melos_managed_dependency_overrides: firebase_core_dart
+# melos_managed_dependency_overrides: firebase_core_dart,storagebox
 dependency_overrides:
   firebase_core_dart:
     path: ../../firebase_core/firebase_core_dart
+  storagebox:
+    path: /home/david/data_ssd/Dev/Flutter/dart-cli-utilities/packages/storagebox

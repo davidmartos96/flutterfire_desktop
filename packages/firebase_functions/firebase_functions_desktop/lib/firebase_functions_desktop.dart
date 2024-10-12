@@ -59,7 +59,15 @@ class FirebaseFunctionsDesktop extends FirebaseFunctionsPlatform {
     String name,
     HttpsCallableOptions options,
   ) =>
-      HttpsCallableDesktop(this, _delegate, origin, name, options);
+      HttpsCallableDesktop(this, _delegate, origin, name, options, null);
+
+  @override
+  HttpsCallablePlatform httpsCallableWithUri(
+    String? origin,
+    Uri uri,
+    HttpsCallableOptions options,
+  ) =>
+      HttpsCallableDesktop(this, _delegate, origin, null, options, uri);
 }
 
 /// Desktop implementation of HttpsCallablePlatform for managing HttpsCallable
@@ -70,9 +78,10 @@ class HttpsCallableDesktop extends HttpsCallablePlatform {
     FirebaseFunctionsDesktop functions,
     this._delegate,
     String? origin,
-    String name,
+    String? name,
     HttpsCallableOptions options,
-  ) : super(functions, origin, name, options);
+    Uri? uri,
+  ) : super(functions, origin, name, options, uri);
 
   /// The dart functions instance for accessing the cloud functions API.
   final functions_dart.FirebaseFunctions _delegate;
@@ -96,7 +105,7 @@ class HttpsCallableDesktop extends HttpsCallablePlatform {
     try {
       response = await _delegate
           .httpsCallable(
-            name,
+            name!, // TODO: remove non-null assertion
             options:
                 functions_dart.HttpsCallableOptions(timeout: options.timeout),
           )

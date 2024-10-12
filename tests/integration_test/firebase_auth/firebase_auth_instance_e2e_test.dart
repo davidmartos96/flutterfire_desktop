@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license
 // that can be found in the LICENSE file.
 import 'dart:async';
+import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -119,74 +120,115 @@ void main() {
         });
       });
 
-      group('userChanges()', () {
-        late StreamSubscription subscription;
-        tearDown(() async {
-          await subscription.cancel();
-        });
+      group(
+        'userChanges()',
+        () {
+          late StreamSubscription subscription;
+          tearDown(() async {
+            await subscription.cancel();
+          });
 
-        test('fires once on first initialization of FirebaseAuth', () async {
-          // Fixes a very specific bug: https://github.com/firebase/flutterfire/issues/3628
-          // If the first initialization of FirebaseAuth involves the listeners userChanges() or idTokenChanges()
-          // the user will receive two events. Why? The native SDK listener will always fire an event upon initial
-          // listen. FirebaseAuth also sends an initial synthetic event. We send a synthetic event because, ordinarily, the user will
-          // not use a listener as the first occurrence of FirebaseAuth. We, therefore, mimic native behavior by sending an
-          // event. This test proves the logic of PR: https://github.com/firebase/flutterfire/pull/6560
+          test('fires once on first initialization of FirebaseAuth', () async {
+            // Fixes a very specific bug: https://github.com/firebase/flutterfire/issues/3628
+            // If the first initialization of FirebaseAuth involves the listeners userChanges() or idTokenChanges()
+            // the user will receive two events. Why? The native SDK listener will always fire an event upon initial
+            // listen. FirebaseAuth also sends an initial synthetic event. We send a synthetic event because, ordinarily, the user will
+            // not use a listener as the first occurrence of FirebaseAuth. We, therefore, mimic native behavior by sending an
+            // event. This test proves the logic of PR: https://github.com/firebase/flutterfire/pull/6560
 
-          // Requires a fresh app.
-          FirebaseApp second = await Firebase.initializeApp(
-            name: 'test-init',
-            options: kFirebaseOptions,
-          );
+            // Requires a fresh app.
+            FirebaseApp second = await Firebase.initializeApp(
+              name: 'test-init',
+              options: kFirebaseOptions,
+            );
 
-          Stream<User?> stream =
-              FirebaseAuth.instanceFor(app: second).userChanges();
+            Stream<User?> stream =
+                FirebaseAuth.instanceFor(app: second).userChanges();
 
-          subscription = stream.listen(
-            expectAsync1(
-              (User? user) {},
-              count: 1,
-              reason: 'Stream should only call once',
-            ),
-          );
+            subscription = stream.listen(
+              expectAsync1(
+                (User? user) {},
+                reason: 'Stream should only call once',
+              ),
+            );
 
-          await Future.delayed(const Duration(seconds: 2));
-        });
+            await Future.delayed(const Duration(seconds: 2));
+          });
 
-        test('calls callback with the current user and when user state changes',
+          test(
+              'calls callback with the current user and when user state changes',
+              () async {
+            await ensureSignedIn(testEmail);
+
+            Stream<User?> stream = FirebaseAuth.instance.userChanges();
+            int call = 0;
+
+            subscription = stream.listen(
+              expectAsync1(
+                (User? user) {
+                  call++;
+                  if (call == 1) {
+                    expect(user!.displayName, isNull); // initial user
+                  } else if (call == 2) {
+                    expect(
+                      user!.displayName,
+                      equals('updatedName'),
+                    ); // updated profile
+                  } else {
+                    fail('Should not have been called');
+                  }
+                },
+                count: 2,
+                reason: 'Stream should only have been called 2 times',
+              ),
+            );
+
+            await FirebaseAuth.instance.currentUser!
+                .updateDisplayName('updatedName');
+
+            expect(
+              FirebaseAuth.instance.currentUser!.displayName,
+              equals('updatedName'),
+            );
+          });
+        },
+        skip: !kIsWeb && (Platform.isWindows || Platform.isMacOS),
+      );
+
+      group('test all stream listeners', () {
+        Matcher containsExactlyThreeUsers() => predicate<List>(
+              (list) => list.whereType<User>().length == 3,
+              'a list containing exactly 3 User instances',
+            );
+        test('create, cancel and reopen all user event stream handlers',
             () async {
-          await ensureSignedIn(testEmail);
+          final auth = FirebaseAuth.instance;
+          final events = [];
+          final streamHandler = events.add;
 
-          Stream<User?> stream = FirebaseAuth.instance.userChanges();
-          int call = 0;
+          StreamSubscription<User?> userChanges =
+              auth.userChanges().listen(streamHandler);
 
-          subscription = stream.listen(
-            expectAsync1(
-              (User? user) {
-                call++;
-                if (call == 1) {
-                  expect(user!.displayName, isNull); // initial user
-                } else if (call == 2) {
-                  expect(
-                    user!.displayName,
-                    equals('updatedName'),
-                  ); // updated profile
-                } else {
-                  fail('Should not have been called');
-                }
-              },
-              count: 2,
-              reason: 'Stream should only have been called 2 times',
-            ),
+          StreamSubscription<User?> authStateChanges =
+              auth.authStateChanges().listen(streamHandler);
+
+          StreamSubscription<User?> idTokenChanges =
+              auth.idTokenChanges().listen(streamHandler);
+
+          await userChanges.cancel();
+          await authStateChanges.cancel();
+          await idTokenChanges.cancel();
+
+          userChanges = auth.userChanges().listen(streamHandler);
+          authStateChanges = auth.authStateChanges().listen(streamHandler);
+          idTokenChanges = auth.idTokenChanges().listen(streamHandler);
+
+          await auth.signInWithEmailAndPassword(
+            email: testEmail,
+            password: testPassword,
           );
 
-          await FirebaseAuth.instance.currentUser!
-              .updateDisplayName('updatedName');
-
-          expect(
-            FirebaseAuth.instance.currentUser!.displayName,
-            equals('updatedName'),
-          );
+          expect(events, containsExactlyThreeUsers());
         });
       });
 
@@ -198,47 +240,59 @@ void main() {
         });
       });
 
-      group('applyActionCode', () {
-        test('throws if invalid code', () async {
-          try {
-            await FirebaseAuth.instance.applyActionCode('!!!!!!');
-            fail('Should have thrown');
-          } on FirebaseException catch (e) {
-            expect(e.code, equals('invalid-action-code'));
-          } catch (e) {
-            fail(e.toString());
-          }
-        });
-      }, skip: !kIsWeb && isFlutterFirePlatform,);
+      group(
+        'applyActionCode',
+        () {
+          test('throws if invalid code', () async {
+            try {
+              await FirebaseAuth.instance.applyActionCode('!!!!!!');
+              fail('Should have thrown');
+            } on FirebaseException catch (e) {
+              expect(e.code, equals('invalid-action-code'));
+            } catch (e) {
+              fail(e.toString());
+            }
+          });
+        },
+        skip: !kIsWeb && Platform.isWindows,
+      );
 
-      group('checkActionCode()', () {
-        test('throws on invalid code', () async {
-          try {
-            await FirebaseAuth.instance.checkActionCode('!!!!!!');
-            fail('Should have thrown');
-          } on FirebaseException catch (e) {
-            expect(e.code, equals('invalid-action-code'));
-          } catch (e) {
-            fail(e.toString());
-          }
-        });
-      }, skip: !kIsWeb && isFlutterFirePlatform);
+      group(
+        'checkActionCode()',
+        () {
+          test('throws on invalid code', () async {
+            try {
+              await FirebaseAuth.instance.checkActionCode('!!!!!!');
+              fail('Should have thrown');
+            } on FirebaseException catch (e) {
+              expect(e.code, equals('invalid-action-code'));
+            } catch (e) {
+              fail(e.toString());
+            }
+          });
+        },
+        skip: !kIsWeb && Platform.isWindows,
+      );
 
-      group('confirmPasswordReset()', () {
-        test('throws on invalid code', () async {
-          try {
-            await FirebaseAuth.instance.confirmPasswordReset(
-              code: '!!!!!!',
-              newPassword: 'thingamajig',
-            );
-            fail('Should have thrown');
-          } on FirebaseException catch (e) {
-            expect(e.code, equals('invalid-action-code'));
-          } catch (e) {
-            fail(e.toString());
-          }
-        });
-      });
+      group(
+        'confirmPasswordReset()',
+        () {
+          test('throws on invalid code', () async {
+            try {
+              await FirebaseAuth.instance.confirmPasswordReset(
+                code: '!!!!!!',
+                newPassword: 'thingamajig',
+              );
+              fail('Should have thrown');
+            } on FirebaseException catch (e) {
+              expect(e.code, equals('invalid-action-code'));
+            } catch (e) {
+              fail(e.toString());
+            }
+          });
+        },
+        skip: !kIsWeb && Platform.isWindows,
+      );
 
       group('createUserWithEmailAndPassword', () {
         test('should create a user with an email and password', () async {
@@ -259,7 +313,11 @@ void main() {
 
             var additionalUserInfo = newUserCredential.additionalUserInfo;
             expect(additionalUserInfo, isA<AdditionalUserInfo>());
-            expect(additionalUserInfo?.isNewUser, isTrue);
+            if (!kIsWeb && Platform.isWindows) {
+              // Skip because isNewUser is always false on Windows
+            } else {
+              expect(additionalUserInfo?.isNewUser, isTrue);
+            }
 
             await FirebaseAuth.instance.currentUser?.delete();
           };
@@ -318,33 +376,41 @@ void main() {
         });
       });
 
-      group('fetchSignInMethodsForEmail()', () {
-        test('should return password provider for an email address', () async {
-          var providers =
-              await FirebaseAuth.instance.fetchSignInMethodsForEmail(testEmail);
-          expect(providers, isList);
-          expect(providers.contains('password'), isTrue);
-        });
+      group(
+        'fetchSignInMethodsForEmail()',
+        () {
+          test('should return password provider for an email address',
+              () async {
+            var providers = await FirebaseAuth.instance
+                // ignore: deprecated_member_use
+                .fetchSignInMethodsForEmail(testEmail);
+            expect(providers, isList);
+            expect(providers.contains('password'), isTrue);
+          });
 
-        test('should return empty array for a not found email', () async {
-          var providers = await FirebaseAuth.instance
-              .fetchSignInMethodsForEmail(generateRandomEmail());
+          test('should return empty array for a not found email', () async {
+            var providers = await FirebaseAuth.instance
+                // ignore: deprecated_member_use
+                .fetchSignInMethodsForEmail(generateRandomEmail());
 
-          expect(providers, isList);
-          expect(providers, isEmpty);
-        });
+            expect(providers, isList);
+            expect(providers, isEmpty);
+          });
 
-        test('throws for a bad email address', () async {
-          try {
-            await FirebaseAuth.instance.fetchSignInMethodsForEmail('foobar');
-            fail('Should have thrown');
-          } on FirebaseAuthException catch (e) {
-            expect(e.code, equals('invalid-email'));
-          } catch (e) {
-            fail(e.toString());
-          }
-        });
-      });
+          test('throws for a bad email address', () async {
+            try {
+              // ignore: deprecated_member_use
+              await FirebaseAuth.instance.fetchSignInMethodsForEmail('foobar');
+              fail('Should have thrown');
+            } on FirebaseAuthException catch (e) {
+              expect(e.code, equals('invalid-email'));
+            } catch (e) {
+              fail(e.toString());
+            }
+          });
+        },
+        skip: !kIsWeb && Platform.isWindows,
+      );
 
       group('isSignInWithEmailLink()', () {
         test('should return true or false', () {
@@ -373,77 +439,90 @@ void main() {
             equals(true),
           );
         });
-      // TODO: Implement isSignInWithEmailLink
+        // TODO: Implement isSignInWithEmailLink
       }, skip: true);
 
-      group('sendPasswordResetEmail()', () {
-        test('should not error', () async {
-          var email = generateRandomEmail();
+      group(
+        'sendPasswordResetEmail()',
+        () {
+          test(
+            'should not error',
+            () async {
+              var email = generateRandomEmail();
 
-          try {
+              try {
+                await FirebaseAuth.instance.createUserWithEmailAndPassword(
+                  email: email,
+                  password: testPassword,
+                );
+
+                await FirebaseAuth.instance
+                    .sendPasswordResetEmail(email: email);
+                await FirebaseAuth.instance.currentUser!.delete();
+              } catch (e) {
+                await FirebaseAuth.instance.currentUser!.delete();
+                fail(e.toString());
+              }
+            },
+            skip: !kIsWeb && Platform.isMacOS,
+          );
+
+          test('fails if the user could not be found', () async {
+            try {
+              await FirebaseAuth.instance
+                  .sendPasswordResetEmail(email: 'does-not-exist@bar.com');
+              fail('Should have thrown');
+            } on FirebaseAuthException catch (e) {
+              expect(e.code, equals('user-not-found'));
+            } catch (e) {
+              fail(e.toString());
+            }
+          });
+        },
+        skip: !kIsWeb && Platform.isWindows,
+      );
+
+      group(
+        'sendSignInLinkToEmail()',
+        () {
+          test('should send email successfully', () async {
+            const email = 'email-signin-test@example.com';
+            const continueUrl = 'http://action-code-test.com';
+
             await FirebaseAuth.instance.createUserWithEmailAndPassword(
               email: email,
               password: testPassword,
             );
 
-            await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
-            await FirebaseAuth.instance.currentUser!.delete();
-          } catch (e) {
-            await FirebaseAuth.instance.currentUser!.delete();
-            fail(e.toString());
-          }
-        });
+            final actionCodeSettings = ActionCodeSettings(
+              url: continueUrl,
+              handleCodeInApp: true,
+            );
 
-        test('fails if the user could not be found', () async {
-          try {
-            await FirebaseAuth.instance
-                .sendPasswordResetEmail(email: 'does-not-exist@bar.com');
-            fail('Should have thrown');
-          } on FirebaseAuthException catch (e) {
-            expect(e.code, equals('user-not-found'));
-          } catch (e) {
-            fail(e.toString());
-          }
-        });
-      });
+            await FirebaseAuth.instance.sendSignInLinkToEmail(
+              email: email,
+              actionCodeSettings: actionCodeSettings,
+            );
 
-      group('sendSignInLinkToEmail()', () {
-        test('should send email successfully', () async {
-          const email = 'email-signin-test@example.com';
-          const continueUrl = 'http://action-code-test.com';
+            // Confirm with the emulator that it triggered an email sending code.
+            final oobCode = await emulatorOutOfBandCode(
+              email,
+              EmulatorOobCodeType.emailSignIn,
+            );
+            expect(oobCode, isNotNull);
+            expect(oobCode?.email, email);
+            expect(oobCode?.type, EmulatorOobCodeType.emailSignIn);
 
-          await FirebaseAuth.instance.createUserWithEmailAndPassword(
-            email: email,
-            password: testPassword,
-          );
-
-          final actionCodeSettings = ActionCodeSettings(
-            url: continueUrl,
-            handleCodeInApp: true,
-          );
-
-          await FirebaseAuth.instance.sendSignInLinkToEmail(
-            email: email,
-            actionCodeSettings: actionCodeSettings,
-          );
-
-          // Confirm with the emulator that it triggered an email sending code.
-          final oobCode = await emulatorOutOfBandCode(
-            email,
-            EmulatorOobCodeType.emailSignIn,
-          );
-          expect(oobCode, isNotNull);
-          expect(oobCode?.email, email);
-          expect(oobCode?.type, EmulatorOobCodeType.emailSignIn);
-
-          // Confirm the continue url was passed through to backend correctly.
-          final url = Uri.parse(oobCode!.oobLink!);
-          expect(
-            url.queryParameters['continueUrl'],
-            Uri.encodeFull(continueUrl),
-          );
-        });
-      }, skip: !kIsWeb && isFlutterFirePlatform);
+            // Confirm the continue url was passed through to backend correctly.
+            final url = Uri.parse(oobCode!.oobLink!);
+            expect(
+              url.queryParameters['continueUrl'],
+              Uri.encodeFull(continueUrl),
+            );
+          });
+        },
+        skip: !kIsWeb && (Platform.isWindows || Platform.isMacOS),
+      );
 
       group('languageCode', () {
         test('should change the language code', () async {
@@ -462,83 +541,97 @@ void main() {
               isNotNull,
             ); // default to the device language or the Firebase projects default language
           },
-          // TODO: Implement fallback locale when setting it as null
-          skip: true,
+          skip: kIsWeb || defaultTargetPlatform == TargetPlatform.macOS,
         );
 
         test(
           'should allow null value and set to null',
           () async {
+            // Isn't possible anymore to set the language code to null
+            // See API: https://firebase.google.com/docs/reference/js/auth.md?_gl=1*120kqub*_up*MQ..*_ga*NTg2MzgzNDU0LjE3MDc5MTYxMjI.*_ga_CW55HF8NVT*MTcwNzkxNjEyMi4xLjAuMTcwNzkxNjEyMi4wLjAuMA..#usedevicelanguage_2a61ea7
+            // Effectively will set the language code to the device language.
             await FirebaseAuth.instance.setLanguageCode(null);
-
+            // This will return the device language now. e.g. "en-GB"
             expect(FirebaseAuth.instance.languageCode, null);
           },
-          skip: !kIsWeb,
+          skip: true,
         );
       });
 
-      group('setPersistence()', () {
-        test(
-          'throw an unimplemented error',
-          () async {
-            try {
-              await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
-              fail('Should have thrown');
-            } catch (e) {
-              expect(e, isInstanceOf<UnimplementedError>());
-            }
-          },
-          skip: kIsWeb || defaultTargetPlatform == TargetPlatform.macOS,
-        );
+      group(
+        'setPersistence()',
+        () {
+          test(
+            'throw an unimplemented error',
+            () async {
+              try {
+                await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
+                fail('Should have thrown');
+              } catch (e) {
+                expect(e, isInstanceOf<UnimplementedError>());
+              }
+            },
+            skip: kIsWeb || defaultTargetPlatform == TargetPlatform.macOS,
+          );
 
-        test(
-          'should set persistence',
-          () async {
-            try {
-              await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
-            } catch (e) {
-              fail('unexpected error thrown');
-            }
-          },
-          skip: !kIsWeb,
-        );
-      });
+          test(
+            'should set persistence',
+            () async {
+              try {
+                await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
+              } catch (e) {
+                fail('unexpected error thrown');
+              }
+            },
+            skip: !kIsWeb,
+          );
+        },
+        skip: !kIsWeb && Platform.isWindows,
+      );
 
       group('signInAnonymously()', () {
-        test('should sign in anonymously', () async {
-          Future successCallback(UserCredential currentUserCredential) async {
-            final currentUser = currentUserCredential.user;
+        test(
+          'should sign in anonymously',
+          () async {
+            Future successCallback(UserCredential currentUserCredential) async {
+              final currentUser = currentUserCredential.user;
 
-            expect(currentUser, isA<User>());
-            expect(currentUser?.uid, isA<String>());
-            expect(currentUser?.email, isNull);
-            expect(currentUser?.isAnonymous, isTrue);
-            expect(
-              currentUser?.uid,
-              equals(FirebaseAuth.instance.currentUser!.uid),
-            );
+              expect(currentUser, isA<User>());
+              expect(currentUser?.uid, isA<String>());
+              expect(currentUser?.email, isNull);
+              expect(currentUser?.isAnonymous, isTrue);
+              expect(
+                currentUser?.uid,
+                equals(FirebaseAuth.instance.currentUser!.uid),
+              );
 
-            var additionalUserInfo = currentUserCredential.additionalUserInfo;
-            expect(additionalUserInfo, isInstanceOf<Object>());
+              var additionalUserInfo = currentUserCredential.additionalUserInfo;
+              expect(additionalUserInfo, isInstanceOf<Object>());
 
-            await FirebaseAuth.instance.signOut();
-          }
+              await FirebaseAuth.instance.signOut();
+            }
 
-          final userCred = await FirebaseAuth.instance.signInAnonymously();
-          await successCallback(userCred);
-        });
+            final userCred = await FirebaseAuth.instance.signInAnonymously();
+            await successCallback(userCred);
+          },
+          skip: !kIsWeb && (Platform.isWindows || Platform.isMacOS),
+        );
       });
 
       group('signInWithCredential()', () {
-        test('should login with email and password', () async {
-          final credential = EmailAuthProvider.credential(
-            email: testEmail,
-            password: testPassword,
-          );
-          await FirebaseAuth.instance
-              .signInWithCredential(credential)
-              .then(commonSuccessCallback);
-        });
+        test(
+          'should login with email and password',
+          () async {
+            final credential = EmailAuthProvider.credential(
+              email: testEmail,
+              password: testPassword,
+            );
+            await FirebaseAuth.instance
+                .signInWithCredential(credential)
+                .then(commonSuccessCallback);
+          },
+          skip: !kIsWeb && (Platform.isWindows || Platform.isMacOS),
+        );
 
         test('throws if login user is disabled', () async {
           final credential = EmailAuthProvider.credential(
@@ -605,38 +698,42 @@ void main() {
         });
       });
 
-      group('signInWithCustomToken()', () {
-        test('signs in with custom auth token', () async {
-          final userCredential =
-              await FirebaseAuth.instance.signInAnonymously();
-          final uid = userCredential.user!.uid;
-          final claims = {
-            'roles': [
-              {'role': 'member'},
-              {'role': 'admin'},
-            ],
-          };
+      group(
+        'signInWithCustomToken()',
+        () {
+          test('signs in with custom auth token', () async {
+            final userCredential =
+                await FirebaseAuth.instance.signInAnonymously();
+            final uid = userCredential.user!.uid;
+            final claims = {
+              'roles': [
+                {'role': 'member'},
+                {'role': 'admin'},
+              ],
+            };
 
-          await ensureSignedOut();
+            await ensureSignedOut();
 
-          expect(FirebaseAuth.instance.currentUser, null);
+            expect(FirebaseAuth.instance.currentUser, null);
 
-          final customToken = emulatorCreateCustomToken(uid, claims: claims);
+            final customToken = emulatorCreateCustomToken(uid, claims: claims);
 
-          final customTokenUserCredential =
-              await FirebaseAuth.instance.signInWithCustomToken(customToken);
+            final customTokenUserCredential =
+                await FirebaseAuth.instance.signInWithCustomToken(customToken);
 
-          expect(customTokenUserCredential.user!.uid, equals(uid));
-          expect(FirebaseAuth.instance.currentUser!.uid, equals(uid));
+            expect(customTokenUserCredential.user!.uid, equals(uid));
+            expect(FirebaseAuth.instance.currentUser!.uid, equals(uid));
 
-          final idTokenResult =
-              await FirebaseAuth.instance.currentUser!.getIdTokenResult();
+            final idTokenResult =
+                await FirebaseAuth.instance.currentUser!.getIdTokenResult();
 
-          expect(idTokenResult.claims!['roles'], isA<List>());
-          expect(idTokenResult.claims!['roles'][0], isA<Map>());
-          expect(idTokenResult.claims!['roles'][0]['role'], 'member');
-        });
-      });
+            expect(idTokenResult.claims!['roles'], isA<List>());
+            expect(idTokenResult.claims!['roles'][0], isA<Map>());
+            expect(idTokenResult.claims!['roles'][0]['role'], 'member');
+          });
+        },
+        skip: !kIsWeb && Platform.isWindows,
+      );
 
       group('signInWithEmailAndPassword()', () {
         test('should login with email and password', () async {
@@ -718,18 +815,22 @@ void main() {
         });
       });
 
-      group('verifyPasswordResetCode()', () {
-        test('throws on invalid code', () async {
-          try {
-            await FirebaseAuth.instance.verifyPasswordResetCode('!!!!!!');
-            fail('Should have thrown');
-          } on FirebaseException catch (e) {
-            expect(e.code, equals('invalid-action-code'));
-          } catch (e) {
-            fail(e.toString());
-          }
-        });
-      });
+      group(
+        'verifyPasswordResetCode()',
+        () {
+          test('throws on invalid code', () async {
+            try {
+              await FirebaseAuth.instance.verifyPasswordResetCode('!!!!!!');
+              fail('Should have thrown');
+            } on FirebaseException catch (e) {
+              expect(e.code, equals('invalid-action-code'));
+            } catch (e) {
+              fail(e.toString());
+            }
+          });
+        },
+        skip: !kIsWeb && Platform.isWindows,
+      );
 
       group(
         'verifyPhoneNumber()',
@@ -822,7 +923,9 @@ void main() {
             skip: kIsWeb || defaultTargetPlatform != TargetPlatform.android,
           );
         },
-        skip: defaultTargetPlatform == TargetPlatform.macOS || isFlutterFirePlatform || kIsWeb,
+        skip: defaultTargetPlatform == TargetPlatform.macOS ||
+            isFlutterFirePlatform ||
+            kIsWeb,
       );
 
       group('setSettings()', () {
