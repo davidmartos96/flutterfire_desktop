@@ -75,7 +75,7 @@ abstract class APIDelegate {
 
       return FirebaseAuthException(
         authErrorCode,
-        message: customMessage,
+        message: customMessage ?? apiError.message,
       );
     } catch (e) {
       rethrow;

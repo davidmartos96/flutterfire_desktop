@@ -14,6 +14,16 @@ class FirebaseAuthException extends FirebaseException implements Exception {
       : super(
           plugin: 'firebase_auth',
           code: authCode.asString,
-          message: verbose[authCode] ?? message,
+          message: _buildMsg(authCode, message),
         );
+}
+
+String? _buildMsg(AuthErrorCode authCode, String? serverMsg) {
+  final verboseMsg = verbose[authCode];
+
+  if (verboseMsg != null && serverMsg != null) {
+    return '$verboseMsg Extra: $serverMsg';
+  } else {
+    return verboseMsg ?? serverMsg;
+  }
 }
