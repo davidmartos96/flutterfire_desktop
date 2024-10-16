@@ -37,7 +37,7 @@ class ConfirmationResult {
           await _auth._api.userAccount.getAccountInfo(response.idToken);
 
       // Map the json response to an actual user.
-      final user = User(userData..addAll(response.toJson()), _auth);
+      final user = User(response.toJson()..addAll(userData), _auth);
 
       _auth._updateCurrentUserAndEvents(user, true);
       await null;

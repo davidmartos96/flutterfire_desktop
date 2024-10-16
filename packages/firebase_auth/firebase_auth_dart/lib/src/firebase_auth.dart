@@ -164,7 +164,7 @@ class FirebaseAuth {
       final userData = await _api.userAccount.getAccountInfo(response.idToken!);
 
       // Map the json response to an actual user.
-      final user = User(userData..addAll(response.toJson()), this);
+      final user = User(response.toJson()..addAll(userData), this);
 
       _updateCurrentUserAndEvents(user, true);
       await null;
@@ -210,7 +210,7 @@ class FirebaseAuth {
       final userData = await _api.userAccount.getAccountInfo(response.idToken!);
 
       // Map the json response to an actual user.
-      final user = User(userData..addAll(response.toJson()), this);
+      final user = User(response.toJson()..addAll(userData), this);
 
       _updateCurrentUserAndEvents(user, true);
       await null;
@@ -361,7 +361,7 @@ class FirebaseAuth {
       final userData = await _api.userAccount.getAccountInfo(response.idToken!);
 
       // Map the json response to an actual user.
-      final user = User(userData..addAll(response.toJson()), this);
+      final user = User(response.toJson()..addAll(userData), this);
 
       _updateCurrentUserAndEvents(user, true);
       await null;
@@ -497,12 +497,8 @@ class FirebaseAuth {
       final userData =
           await _api.userAccount.getAccountInfo(response['idToken']);
 
-      // Override the response fields with updated fields from `getAccountInfo`.
-      // For instance userData can have emailVerified true and response false.
-      response.addAll(userData);
-
       // Map the json response to an actual user.
-      final user = User(response, this);
+      final user = User(response..addAll(userData), this);
 
       _updateCurrentUserAndEvents(user, true);
       await null;
@@ -569,7 +565,7 @@ class FirebaseAuth {
     final userData = await _api.userAccount.getAccountInfo(idToken);
 
     // Map the json response to an actual user.
-    return User(userData..addAll(signInResponse.toJson()), this);
+    return User(signInResponse.toJson()..addAll(userData), this);
   }
 
   /// Starts a phone number verification process for the given phone number.
